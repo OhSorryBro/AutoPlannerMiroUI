@@ -36,7 +36,7 @@
             this.textBoxTerminal.ReadOnly = true;
             this.textBoxTerminal.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.textBoxTerminal.Size = new System.Drawing.Size(918, 280);
-            this.textBoxTerminal.TabIndex = 0;
+            this.textBoxTerminal.TabIndex = 1;
             // 
             // textBoxInput
             // 
@@ -47,7 +47,7 @@
             this.textBoxInput.Location = new System.Drawing.Point(20, 306);
             this.textBoxInput.Name = "textBoxInput";
             this.textBoxInput.Size = new System.Drawing.Size(918, 36);
-            this.textBoxInput.TabIndex = 1;
+            this.textBoxInput.TabIndex = 0;
             this.textBoxInput.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBoxInput_KeyDown);
             // 
             // pictureBoxLogo
