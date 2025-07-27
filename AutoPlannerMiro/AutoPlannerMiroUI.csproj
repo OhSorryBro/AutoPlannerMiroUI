@@ -12,7 +12,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Automatic-planner-Miro-Icon.ico" />
+    <Content Include="Automatic-planner-Miro-Icon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

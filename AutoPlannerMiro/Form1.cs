@@ -29,7 +29,7 @@ namespace AutoPlannerMiro
         public Form1()
         {
             InitializeComponent();
-
+            this.Icon = new Icon("Automatic-planner-Miro-Icon.ico");
             // Ustaw focus na textboxInput po starcie
             this.Load += (s, e) => textBoxInput.Focus();
 
