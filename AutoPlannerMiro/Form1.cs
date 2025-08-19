@@ -41,6 +41,29 @@ namespace AutoPlannerMiro
             Terminal.OnWriteLine += msg => AddLineToTerminal(msg);
 
         }
+        // ---- HELPER METHODS ----
+        private static bool TryParseIntInRange(string s, int min, int max, out int value)
+        {
+            if (int.TryParse(s, out value))
+                return value >= min && value <= max;
+            value = 0;
+            return false;
+        }
+
+        private static bool TryParseNonNegativeInt(string s, out int value)
+        {
+            if (int.TryParse(s, out value))
+                return value >= 0;
+            value = 0;
+            return false;
+        }
+
+        private static bool TryParseLayoutHK(string s, out string layout)
+        {
+            layout = (s ?? "").Trim().ToUpperInvariant();
+            return layout == "H" || layout == "K";
+        }
+
 
         private void AddLineToTerminal(string line)
         {
@@ -72,54 +95,95 @@ namespace AutoPlannerMiro
 
         private void textBoxInput_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            if (e.KeyCode != Keys.Enter) return;
+            e.SuppressKeyPress = true;
+
+            string input = textBoxInput.Text.Trim();
+            if (string.IsNullOrEmpty(input)) return;
+
+            AddLineToTerminal("> " + input);
+            textBoxInput.Clear();
+
+            // 0..3 = pytania wstępne
+            if (wizardStep < wizardQuestions.Length)
             {
-                e.SuppressKeyPress = true;
-                string input = textBoxInput.Text.Trim();
-                if (!string.IsNullOrEmpty(input))
+                switch (wizardStep)
                 {
-                    AddLineToTerminal("> " + input);
-                    textBoxInput.Clear();
+                    case 0: // How many Forming Stations?
+                        if (!TryParseIntInRange(input, 1, 5, out _))
+                        {
+                            AddLineToTerminal("Please enter a whole number between 1 and 5 (forming stations).");
+                            return; // nie idziemy dalej
+                        }
+                        wizardAnswers.Add(input);
+                        break;
 
-                    if (wizardStep < wizardQuestions.Length)
-                    {
-                        wizardAnswers.Add(input); // Zbieraj odpowiedzi z wizardu
-                        wizardStep++;
-                        if (wizardStep < wizardQuestions.Length)
+                    case 1: // How many Ready Locations?
+                        if (!TryParseIntInRange(input, 1, 16, out _))
                         {
-                            AddLineToTerminal(wizardQuestions[wizardStep]);
+                            AddLineToTerminal("Please enter a whole number between 1 and 16 (ready locations).");
+                            return;
                         }
-                        else
-                        {
-                            AddLineToTerminal("Wizard completed! Now enter number of slots for each category:");
-                            AddLineToTerminal($"How many slots for {categoryNames[categoryInputStep]}?");
-                        }
-                    }
-                    // Kiedy kończysz wizard i zaczynasz wpisywać ilości dla kategorii:
-                    else if (categoryInputStep < categoryNames.Count)
-                    {
-                        if (int.TryParse(input, out int slots))
-                        {
-                            categoryCounts.Add(slots);
-                            categoryInputStep++;
-                            if (categoryInputStep < categoryNames.Count)
-                            {
-                                AddLineToTerminal($"How many slots for {categoryNames[categoryInputStep]}?");
-                            }
-                            else
-                            {
-                                AddLineToTerminal("All category slot numbers collected! Running planner...");
-                                textBoxInput.Enabled = false;
+                        wizardAnswers.Add(input);
+                        break;
 
-                                // Tu wywołujesz logikę planowania, przekazując wizardAnswers i categoryCounts
-                                RunPlannerWithAnswers(wizardAnswers, categoryCounts);
-                            }
-                        }
-                        else
+                    case 2: // Choose scenario (1,2,3)
+                        if (!TryParseIntInRange(input, 1, 3, out _))
                         {
-                            AddLineToTerminal("Please type a valid number for slots!");
+                            AddLineToTerminal("Scenario must be 1, 2, or 3.");
+                            return;
                         }
-                    }
+                        wizardAnswers.Add(input);
+                        break;
+
+                    case 3: // Choose layout: H or K
+                        if (!TryParseLayoutHK(input, out var layout))
+                        {
+                            AddLineToTerminal("Layout must be 'H' or 'K'.");
+                            return;
+                        }
+                        wizardAnswers.Add(layout); // zapisujemy już jako H/K
+                        break;
+                }
+
+                // jeśli przeszliśmy walidację – przejdź do następnego pytania
+                wizardStep++;
+                if (wizardStep < wizardQuestions.Length)
+                {
+                    AddLineToTerminal(wizardQuestions[wizardStep]);
+                }
+                else
+                {
+                    // Start zbierania ilości per kategoria
+                    AddLineToTerminal("Wizard completed! Now enter number of slots for each category:");
+                    AddLineToTerminal($"How many slots for {categoryNames[categoryInputStep]}?");
+                }
+                return;
+            }
+
+            // ---- Ilości per kategoria ----
+            if (categoryInputStep < categoryNames.Count)
+            {
+                if (!TryParseNonNegativeInt(input, out int slots))
+                {
+                    AddLineToTerminal("Please enter a non‑negative whole number (0 or more).");
+                    return;
+                }
+
+                categoryCounts.Add(slots);
+                categoryInputStep++;
+
+                if (categoryInputStep < categoryNames.Count)
+                {
+                    AddLineToTerminal($"How many slots for {categoryNames[categoryInputStep]}?");
+                }
+                else
+                {
+                    AddLineToTerminal("All category slot numbers collected! Running planner...");
+                    textBoxInput.Enabled = false;
+
+                    // wystartuj logikę
+                    RunPlannerWithAnswers(wizardAnswers, categoryCounts);
                 }
             }
         }
