@@ -15,7 +15,7 @@ namespace AutoPlannerMiro
 
         const string Author = "|| Made by: Michal Domagala";
         const string Contact = "  || Visit my LinkedIn profile: https://www.linkedin.com/in/michal-domagala-b0147b236/";
-        const string Version = "|| Version: 1.2";
+        const string Version = "|| Version: 1.21";
         const string TotalTries = $"|| Total tries: ";
         const string LevelOfSevernity2 = "|| Level of Severnity: ";
 
