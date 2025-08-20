@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.ComponentModel.Design;
 using System.Numerics;
 using System.Windows.Forms;
@@ -9,7 +12,7 @@ namespace AutoPlannerMiro
     {
         private int wizardStep = 0;
         private List<string> wizardAnswers = new List<string>();
-        private List<int> categoryCounts = new List<int>();
+        private readonly List<int> categoryCounts = new();
         private string[] wizardQuestions = new[]
         {
         "How many Forming Stations?",
@@ -17,18 +20,21 @@ namespace AutoPlannerMiro
         "Choose scenario (1, 2, 3):",
         "Choose layout: H (standard) or K (alternative):",
     };
-
         private int categoryInputStep = 0;
-        private List<string> categoryNames = new List<string>
+        private List<string> categoryNames = new();
+
+        public static List<string> GetCategoryNames(List<CategoryCount> categories)
     {
-        "Order_Type1", "Order_Type2", "Order_Type3", "Order_Type4", "Order_Type5",
-        "Order_Type6", "Order_Type7", "Order_Type8", "Order_Type9", "Order_Type10",
-        "Order_Type11", "Order_Type12", "Order_Type13"
-    };
+        return categories.Select(c => c.Category).ToList();
+    }
 
         public Form1()
         {
             InitializeComponent();
+            categoryNames = (RunPlannerAsync.Categories ?? new())
+                                   .Select(c => c.Category)
+                                   .ToList();
+
             this.Icon = new Icon("Automatic-planner-Miro-Icon.ico");
             // Ustaw focus na textboxInput po starcie
             this.Load += (s, e) => textBoxInput.Focus();
