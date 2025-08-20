@@ -19,6 +19,38 @@ namespace AutoPlannerMiro
         const string TotalTries = $"|| Total tries: ";
         const string LevelOfSevernity2 = "|| Level of Severnity: ";
 
+        public static List<CategoryCount> Categories = new List<CategoryCount>
+        {
+            new CategoryCount{ Category = "Order_Type1",      Duration=60 ,   Count =0, DurationGroup= 1, Color = "#f5f6f8"},
+            new CategoryCount{ Category = "Order_Type2",      Duration=90 ,   Count =0, DurationGroup= 1, Color = "#d5f692"},
+            new CategoryCount{ Category = "Order_Type3",      Duration=120 ,  Count =0, DurationGroup= 2, Color = "#d0e17a"},
+            new CategoryCount{ Category = "Order_Type4",      Duration=150 ,  Count =0, DurationGroup= 2, Color = "#93d275"},
+            new CategoryCount{ Category = "Order_Type5",      Duration=180 ,  Count =0, DurationGroup= 2, Color = "#67c6c0"},
+            new CategoryCount{ Category = "Order_Type6",      Duration=210 ,  Count =0, DurationGroup= 2, Color = "#23bfe7"},
+            new CategoryCount{ Category = "Order_Type7",      Duration=240 ,  Count =0, DurationGroup= 2, Color = "#a6ccf5"},
+            new CategoryCount{ Category = "Order_Type8",      Duration=270 ,  Count =0, DurationGroup= 3, Color = "#7b92ff"},
+            new CategoryCount{ Category = "Order_Type9",      Duration=300 ,  Count =0, DurationGroup= 3, Color = "#fff9b1"},
+            new CategoryCount{ Category = "Order_Type10",     Duration=330 ,  Count =0, DurationGroup= 3, Color = "#f5d128"},
+            new CategoryCount{ Category = "Order_Type11",     Duration=240 ,  Count =0, DurationGroup= 2, Color = "#ff9d48"},
+            new CategoryCount{ Category = "Order_Type12",     Duration=270 ,  Count =0, DurationGroup= 3, Color = "#f16c7f"},
+            new CategoryCount{ Category = "Order_Type13",     Duration=180 ,  Count =0, DurationGroup= 2, Color = "#ea94bb"},
+            //new CategoryCount{ Category = "VE(A)",      Duration=60 ,   Count =0, DurationGroup= 1, Color = "#f5f6f8"},
+            //new CategoryCount{ Category = "VE(B)",      Duration=90 ,   Count =0, DurationGroup= 1, Color = "#d5f692"},
+            //new CategoryCount{ Category = "E(A)",       Duration=120 ,  Count =0, DurationGroup= 2, Color = "#d0e17a"},
+            //new CategoryCount{ Category = "E(B)",       Duration=150 ,  Count =0, DurationGroup= 2, Color = "#93d275"},
+            //new CategoryCount{ Category = "M(A)",       Duration=180 ,  Count =0, DurationGroup= 2, Color = "#67c6c0"},
+            //new CategoryCount{ Category = "M(B)",       Duration=210 ,  Count =0, DurationGroup= 2, Color = "#23bfe7"},
+            //new CategoryCount{ Category = "D(A)",       Duration=240 ,  Count =0, DurationGroup= 2, Color = "#a6ccf5"},
+            //new CategoryCount{ Category = "D(B)",       Duration=270 ,  Count =0, DurationGroup= 3, Color = "#7b92ff"},
+            //new CategoryCount{ Category = "VD(A)",      Duration=300 ,  Count =0, DurationGroup= 3, Color = "#fff9b1"},
+            //new CategoryCount{ Category = "VD(B)",      Duration=330 ,  Count =0, DurationGroup= 3, Color = "#f5d128"},
+            //new CategoryCount{ Category = "Container",  Duration=240 ,  Count =0, DurationGroup= 2, Color = "#ff9d48"},
+            //new CategoryCount{ Category = "SE",         Duration=270 ,  Count =0, DurationGroup= 3, Color = "#f16c7f"},
+            //new CategoryCount{ Category = "BE(A)",      Duration=180 ,  Count =0, DurationGroup= 2, Color = "#ea94bb"},
+            //new CategoryCount{ Category = "BE(B)",      Duration=270 ,  Count =0, DurationGroup= 3, Color = "#ffcee0"},
+            //new CategoryCount{ Category = "NL",         Duration=270 ,  Count =0, DurationGroup= 3, Color = "#b384bb"},
+         };
+
         public static List<CategoryCount> DeepCopyCategories(List<CategoryCount> source)
         {
             return source.Select(cat => new CategoryCount
@@ -151,37 +183,7 @@ namespace AutoPlannerMiro
             string apiKey = config["Miro:ApiKey"];
 
             int OrderSlotAmmount = 0;
-            List<CategoryCount> Categories = new List<CategoryCount>
-        {
-            new CategoryCount{ Category = "Order_Type1",      Duration=60 ,   Count =0, DurationGroup= 1, Color = "#f5f6f8"},
-            new CategoryCount{ Category = "Order_Type2",      Duration=90 ,   Count =0, DurationGroup= 1, Color = "#d5f692"},
-            new CategoryCount{ Category = "Order_Type3",      Duration=120 ,  Count =0, DurationGroup= 2, Color = "#d0e17a"},
-            new CategoryCount{ Category = "Order_Type4",      Duration=150 ,  Count =0, DurationGroup= 2, Color = "#93d275"},
-            new CategoryCount{ Category = "Order_Type5",      Duration=180 ,  Count =0, DurationGroup= 2, Color = "#67c6c0"},
-            new CategoryCount{ Category = "Order_Type6",      Duration=210 ,  Count =0, DurationGroup= 2, Color = "#23bfe7"},
-            new CategoryCount{ Category = "Order_Type7",      Duration=240 ,  Count =0, DurationGroup= 2, Color = "#a6ccf5"},
-            new CategoryCount{ Category = "Order_Type8",      Duration=270 ,  Count =0, DurationGroup= 3, Color = "#7b92ff"},
-            new CategoryCount{ Category = "Order_Type9",      Duration=300 ,  Count =0, DurationGroup= 3, Color = "#fff9b1"},
-            new CategoryCount{ Category = "Order_Type10",     Duration=330 ,  Count =0, DurationGroup= 3, Color = "#f5d128"},
-            new CategoryCount{ Category = "Order_Type11",     Duration=240 ,  Count =0, DurationGroup= 2, Color = "#ff9d48"},
-            new CategoryCount{ Category = "Order_Type12",     Duration=270 ,  Count =0, DurationGroup= 3, Color = "#f16c7f"},
-            new CategoryCount{ Category = "Order_Type13",     Duration=180 ,  Count =0, DurationGroup= 2, Color = "#ea94bb"},
-            //new CategoryCount{ Category = "VE(A)",      Duration=60 ,   Count =0, DurationGroup= 1, Color = "#f5f6f8"},
-            //new CategoryCount{ Category = "VE(B)",      Duration=90 ,   Count =0, DurationGroup= 1, Color = "#d5f692"},
-            //new CategoryCount{ Category = "E(A)",       Duration=120 ,  Count =0, DurationGroup= 2, Color = "#d0e17a"},
-            //new CategoryCount{ Category = "E(B)",       Duration=150 ,  Count =0, DurationGroup= 2, Color = "#93d275"},
-            //new CategoryCount{ Category = "M(A)",       Duration=180 ,  Count =0, DurationGroup= 2, Color = "#67c6c0"},
-            //new CategoryCount{ Category = "M(B)",       Duration=210 ,  Count =0, DurationGroup= 2, Color = "#23bfe7"},
-            //new CategoryCount{ Category = "D(A)",       Duration=240 ,  Count =0, DurationGroup= 2, Color = "#a6ccf5"},
-            //new CategoryCount{ Category = "D(B)",       Duration=270 ,  Count =0, DurationGroup= 3, Color = "#7b92ff"},
-            //new CategoryCount{ Category = "VD(A)",      Duration=300 ,  Count =0, DurationGroup= 3, Color = "#fff9b1"},
-            //new CategoryCount{ Category = "VD(B)",      Duration=330 ,  Count =0, DurationGroup= 3, Color = "#f5d128"},
-            //new CategoryCount{ Category = "Container",  Duration=240 ,  Count =0, DurationGroup= 2, Color = "#ff9d48"},
-            //new CategoryCount{ Category = "SE",         Duration=270 ,  Count =0, DurationGroup= 3, Color = "#f16c7f"},
-            //new CategoryCount{ Category = "BE(A)",      Duration=180 ,  Count =0, DurationGroup= 2, Color = "#ea94bb"},
-            //new CategoryCount{ Category = "BE(B)",      Duration=270 ,  Count =0, DurationGroup= 3, Color = "#ffcee0"},
-            //new CategoryCount{ Category = "NL",         Duration=270 ,  Count =0, DurationGroup= 3, Color = "#b384bb"},
-         };
+
 
 
             int FormerenStationAmmount = formerenStationAmount;
