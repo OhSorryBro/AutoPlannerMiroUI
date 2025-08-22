@@ -16,6 +16,10 @@ namespace AutoPlannerMiro
         public Form1()
         {
             InitializeComponent();
+            categoryNames = (RunPlannerAsync.Categories ?? new())
+                                   .Select(c => c.Category)
+                                   .ToList();
+
             this.Icon = new Icon("Automatic-planner-Miro-Icon.ico");
             this.Load += (s, e) => textBoxInput.Focus();
 
