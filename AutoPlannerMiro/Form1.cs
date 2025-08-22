@@ -16,17 +16,10 @@ namespace AutoPlannerMiro
         public Form1()
         {
             InitializeComponent();
-            categoryNames = (RunPlannerAsync.Categories ?? new())
-                                   .Select(c => c.Category)
-                                   .ToList();
-
             this.Icon = new Icon("Automatic-planner-Miro-Icon.ico");
             this.Load += (s, e) => textBoxInput.Focus();
 
-            var categoryNames = (RunPlannerAsync.Categories ?? new())
-                .Select(c => c.Category)
-                .ToList();
-
+            var categoryNames = (RunPlannerAsync.Categories ?? new()).Select(c => c.Category).ToList();
             var questions = new[]
             {
             "How many Forming Stations?",
@@ -44,7 +37,7 @@ namespace AutoPlannerMiro
         }
 
         // IWizardView
-        public void WriteLine(string line) => AddLineToTerminal(line);
+        public void WriteLine(string text) => AddLineToTerminal(text);
         public void DisableInput() => textBoxInput.Enabled = false;
         public void EnableInput() => textBoxInput.Enabled = true;
         public void FocusInput() => textBoxInput.Focus();
@@ -63,7 +56,7 @@ namespace AutoPlannerMiro
             if (e.KeyCode != Keys.Enter) return;
             e.SuppressKeyPress = true;
 
-            string input = textBoxInput.Text.Trim();
+            var input = textBoxInput.Text.Trim();
             if (string.IsNullOrEmpty(input)) return;
 
             WriteLine("> " + input);
@@ -72,4 +65,5 @@ namespace AutoPlannerMiro
             await _presenter.OnInputAsync(input);
         }
     }
+
 }
