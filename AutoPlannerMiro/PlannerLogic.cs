@@ -87,22 +87,6 @@ public class PlannerLogic
     }
 
 
-    public static int GetLoadingTimeBySeverity(int levelOfSevernity)
-    {
-        switch (levelOfSevernity)
-        {
-            case 1:
-                return 90;
-            case 2:
-                return 90;
-            case 3:
-                return 80;
-            case 4:
-                return 70;
-            default:
-                return 90;
-        }
-    }
 
 
 
@@ -272,7 +256,7 @@ public class PlannerLogic
         int duration = categories.First(cat => cat.Category == order.OrderCategory).Duration;
         int orderStart = order.orderStart;
         int orderEnd = order.orderEnd;
-        int loadingDuration = GetLoadingTimeBySeverity(levelOfSevernity);
+        int loadingDuration = LevelOfMatching.GetLoadingTimeBySeverity(levelOfSevernity);
         int loadingStart = orderEnd + 1;
         int loadingEnd = loadingStart + loadingDuration - 1;
 
@@ -305,7 +289,6 @@ public class PlannerLogic
         // Calculate x
         int x = (20 + ready.ReadyLocationID) * 100;
 
-        // Oznacz slot jako zajęty!
         MarkSlotBusy(ready.TimeBusy, orderStart, orderEnd);
 
         // We move order (with new x)
@@ -341,8 +324,7 @@ public class PlannerLogic
 
     public void CheckIfEnoughTimeAvailable(List<FormerenStation> formerenStations, List<CategoryCount> categories)
     {
-        // This method checks if there is enough time available in the Formeren stations to process all orders.
-        // If not, it will tell user that he made a mistake and there is not enough time to process all orders.
+
         int totalTimeNeeded = categories.Sum(cat => cat.Count * cat.Duration);
         int totalTimeAvailable = formerenStations.Sum(station => station.TimeAvailableFormeren);
         if (totalTimeNeeded > totalTimeAvailable)

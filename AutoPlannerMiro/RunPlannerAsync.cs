@@ -15,7 +15,7 @@ namespace AutoPlannerMiro
 
         const string Author = "|| Made by: Michal Domagala";
         const string Contact = "  || Visit my LinkedIn profile: https://www.linkedin.com/in/michal-domagala-b0147b236/";
-        const string Version = "|| Version: 1.22";
+        const string Version = "|| Version: 1.23";
         const string TotalTries = $"|| Total tries: ";
         const string LevelOfSevernity2 = "|| Level of Severnity: ";
 
@@ -123,7 +123,7 @@ namespace AutoPlannerMiro
                 if (int.TryParse(input, out result))
                 {
                     if (result > 0 && result < 4)
-                        return result; // Sukces – zwracamy wynik
+                        return result;
                     else
                         Terminal.WriteLine("Please type in a valid number greater than 0.");
                 }
@@ -328,7 +328,7 @@ namespace AutoPlannerMiro
 
                             int duration;
                             if (order.OrderCategory == "Loading time")
-                                duration = PlannerLogic.GetLoadingTimeBySeverity(matching.LevelOfSevernity);
+                                duration = LevelOfMatching.GetLoadingTimeBySeverity(matching.LevelOfSevernity);
                             else
                                 duration = Categories.First(cat => cat.Category == order.OrderCategory).Duration;
 

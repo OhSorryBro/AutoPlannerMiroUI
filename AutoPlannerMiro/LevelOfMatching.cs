@@ -31,6 +31,24 @@ namespace AutoPlannerMiro
             OrdersUnmatched = 0;
         }
 
+
+    public static int GetLoadingTimeBySeverity(int levelOfSevernity)
+    {
+        switch (levelOfSevernity)
+        {
+            case 1:
+                return 90;
+            case 2:
+                return 90;
+            case 3:
+                return 80;
+            case 4:
+                return 70;
+            default:
+                return 90;
+        }
+    }
+
         public void IncrementTries()
         {
             TotalTries++;
@@ -41,7 +59,7 @@ namespace AutoPlannerMiro
             LevelOfSevernity = newLevel;
         }
 
-        // Przykładowa metoda oceny
+        // MIKE TO_DO
         public void EvaluateMatching(/* params możesz dodać listę orderów, statusy itd. */)
         {
             // Tutaj zrób logikę oceny dopasowania, np. na podstawie OrdersMatched, OrdersUnmatched
