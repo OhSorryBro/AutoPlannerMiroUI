@@ -14,8 +14,10 @@ namespace AutoPlannerMiro
         {
             var dict = new Dictionary<int, int>();
             if (!File.Exists(path))
+            {
+                Terminal.WriteLine("ERROR: File with Ready Location status data is not found: " + path);
                 return dict;
-
+            }
             var lines = File.ReadAllLines(path).Skip(1); // pomiń nagłówek
             foreach (var line in lines)
             {
@@ -26,6 +28,27 @@ namespace AutoPlannerMiro
 
                 if (status == "Occupied" && occupiedUntil > 0)
                     dict[id] = occupiedUntil;
+            }
+            return dict;
+        }
+
+        public static Dictionary<string, (int,int)> ReadPriorityOrders(string path)
+        {
+            var dict = new Dictionary<string, (int, int)>();
+            if (!File.Exists(path))
+            {
+                Terminal.WriteLine("ERROR: File with priority data is not found: " + path);
+                return dict;
+            }
+            var lines = File.ReadAllLines(path).Skip(1); // pomiń nagłówek
+            foreach (var line in lines)
+            {
+                var parts = line.Split(';');
+                string id = parts[0];
+                int time = int.Parse(parts[1]);
+                int ammount = int.Parse(parts[2]);
+                dict[id] = (time, ammount);
+
             }
             return dict;
         }
