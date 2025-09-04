@@ -55,6 +55,9 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Update="priority_orders.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="ready_locations_status.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
