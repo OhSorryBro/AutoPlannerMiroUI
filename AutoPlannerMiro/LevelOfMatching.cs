@@ -60,10 +60,10 @@ namespace AutoPlannerMiro
         }
 
         // MIKE TO_DO
-        public void EvaluateMatching(/* params możesz dodać listę orderów, statusy itd. */)
+        public void EvaluateMatching()
         {
-            // Tutaj zrób logikę oceny dopasowania, np. na podstawie OrdersMatched, OrdersUnmatched
-            // i ustaw LevelOfSevernity odpowiednio (1/2/3)
+            // Some logic to evaluate matching? OrdersMatched, OrdersUnmatched
+
         }
     }
 

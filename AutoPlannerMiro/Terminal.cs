@@ -9,7 +9,6 @@ namespace AutoPlannerMiro
 {
     public static class Terminal
     {
-        // Delegata na zdarzenie „ktoś coś wypisał”
         public static event Action<string> OnWriteLine;
 
         public static void WriteLine(string message)

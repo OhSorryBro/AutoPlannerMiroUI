@@ -15,7 +15,7 @@ namespace AutoPlannerMiro
 
         const string Author = "|| Made by: Michal Domagala";
         const string Contact = "  || Visit my LinkedIn profile: https://www.linkedin.com/in/michal-domagala-b0147b236/";
-        const string Version = "|| Version: 1.23";
+        const string Version = "|| Version: 1.3";
         const string TotalTries = $"|| Total tries: ";
         const string LevelOfSevernity2 = "|| Level of Severnity: ";
 
@@ -91,6 +91,21 @@ namespace AutoPlannerMiro
                 TimeBusy = new HashSet<int>(loc.TimeBusy),
                 OrdersAdded = new Stack<(string, int, int, string, int, int)>(loc.OrdersAdded.Reverse())
             }).ToList();
+        }
+
+        public static Dictionary<string, int> DeepCopyPriorityCounts(Dictionary<string, int> source)
+        {
+            return source.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+        }
+
+        public static Dictionary<string, List<(int idealMinute, int tolMin)>> DeepCopyPriorityWindows(
+            Dictionary<string, List<(int idealMinute, int tolMin)>> source)
+        {
+            return source.ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value.Select(w => (w.idealMinute, w.tolMin)).ToList(),
+                StringComparer.OrdinalIgnoreCase
+            );
         }
 
         public static int ReadIntFromConsole(string prompt)
@@ -241,6 +256,12 @@ namespace AutoPlannerMiro
             var OriginalCategories = DeepCopyCategories(Categories);
             var OriginalFormerenStations = CreatorFormerenStation.CreatorFormerenStations(FormerenStationAmmount);
             var OriginalReadyLocation = CreatorReadyLocation.CreatorReadyLocations(ReadyLocationAmmount);
+            var OriginalPriorityWindows = FileHelpers.ReadPriorityOrders("priority_orders.csv");
+            var OriginalPriorityCounts = OriginalPriorityWindows.ToDictionary(
+                kv => kv.Key,
+                kv => kv.Value.Count,
+                StringComparer.OrdinalIgnoreCase
+            );
 
 
             foreach (var location in OriginalReadyLocation)
@@ -268,6 +289,8 @@ namespace AutoPlannerMiro
                 var tmpCategories = DeepCopyCategories(OriginalCategories);
                 var tmpFormerenStations = DeepCopyFormerenStations(OriginalFormerenStations);
                 var tmpReadyLocation = DeepCopyReadyLocations(OriginalReadyLocation);
+                var tmpPriorityCounts = DeepCopyPriorityCounts(OriginalPriorityCounts);
+                var tmpPriorityWindows = DeepCopyPriorityWindows(OriginalPriorityWindows);
                 var dockAssignments = PlannerLogic.AssignDocks(tmpFormerenStations.Count, layoutInput);
 
                 switch (matching.LevelOfSevernity)
@@ -294,7 +317,14 @@ namespace AutoPlannerMiro
                     planner.CheckIfEnoughTimeAvailable(tmpFormerenStations, tmpCategories);
                     while (tmpCategories.Sum(cat => cat.Count) > 0)
                     {
-                        planner.PlanToFormerenStation(tmpFormerenStations, tmpCategories, matching, rng);
+                        planner.PlanToFormerenStation(
+                            tmpFormerenStations,
+                            tmpCategories,
+                            matching,
+                            rng,
+                            tmpPriorityCounts,
+                            tmpPriorityWindows
+                        );
                     }
                     Terminal.WriteLine("All orders have been given!");
 

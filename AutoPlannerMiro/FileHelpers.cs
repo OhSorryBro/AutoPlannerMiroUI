@@ -18,7 +18,7 @@ namespace AutoPlannerMiro
                 Terminal.WriteLine("ERROR: File with Ready Location status data is not found: " + path);
                 return dict;
             }
-            var lines = File.ReadAllLines(path).Skip(1); // pomiń nagłówek
+            var lines = File.ReadAllLines(path).Skip(1); 
             foreach (var line in lines)
             {
                 var parts = line.Split(';');
@@ -32,25 +32,59 @@ namespace AutoPlannerMiro
             return dict;
         }
 
-        public static Dictionary<string, (int,int)> ReadPriorityOrders(string path)
-        {
-            var dict = new Dictionary<string, (int, int)>();
-            if (!File.Exists(path))
-            {
-                Terminal.WriteLine("ERROR: File with priority data is not found: " + path);
-                return dict;
-            }
-            var lines = File.ReadAllLines(path).Skip(1); // pomiń nagłówek
-            foreach (var line in lines)
-            {
-                var parts = line.Split(';');
-                string id = parts[0];
-                int time = int.Parse(parts[1]);
-                int ammount = int.Parse(parts[2]);
-                dict[id] = (time, ammount);
+      public static Dictionary<string, List<(int idealMinute, int tolMin)>> ReadPriorityOrders(
+    string path,
+    int defaultToleranceMin = 60)
+{
+            var dict = new Dictionary<string, List<(int idealMinute, int tolMin)>>(StringComparer.OrdinalIgnoreCase);
 
-            }
-            return dict;
+
+            if (!File.Exists(path))
+    {
+        Terminal.WriteLine("ERROR: File with priority data is not found: " + path);
+        return dict;
+    }
+
+    var lines = File.ReadAllLines(path).Skip(1); // pomijamy nagłówek
+    foreach (var raw in lines)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) continue;
+
+        var parts = raw.Split(';');
+        if (parts.Length < 3)
+        {
+            Terminal.WriteLine($"WARN: Bad row (expected 3 columns): '{raw}'");
+            continue;
         }
+
+        string orderId = parts[0].Trim();
+        if (!int.TryParse(parts[1].Trim(), out int idealMinute))
+        {
+            Terminal.WriteLine($"WARN: Bad TimeWindow: '{parts[1]}'");
+            continue;
+        }
+        if (!int.TryParse(parts[2].Trim(), out int amount) || amount <= 0)
+        {
+            Terminal.WriteLine($"WARN: Bad AmountOfOrders: '{parts[2]}'");
+            continue;
+        }
+
+        if (!dict.TryGetValue(orderId, out var list))
+        {
+            list = new List<(int,int)>();
+            dict[orderId] = list;
+        }
+
+        // Dodajemy „amount” kopii tego samego okna
+        for (int i = 0; i < amount; i++)
+            list.Add((idealMinute, defaultToleranceMin));
+    }
+
+    // posortuj okna w ramach każdej kategorii, dla przewidywalności
+    foreach (var kv in dict)
+        kv.Value.Sort((a, b) => a.idealMinute.CompareTo(b.idealMinute));
+
+    return dict;
+}
     }
 }

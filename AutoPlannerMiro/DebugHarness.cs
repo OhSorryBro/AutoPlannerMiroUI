@@ -15,7 +15,12 @@ namespace AutoPlannerMiro
                 var orders = FileHelpers.ReadPriorityOrders(path);
                 Console.WriteLine($"Found {orders.Count} records in: {path}");
                 foreach (var kvp in orders)
-                    Console.WriteLine($"{kvp.Key} => ({kvp.Value.Item1}, {kvp.Value.Item2})");
+                {
+                    Console.Write($"{kvp.Key} => ");
+                    foreach (var win in kvp.Value)
+                        Console.Write($"({win.idealMinute}, {win.tolMin}) ");
+                    Console.WriteLine();
+                }
             }
             catch (Exception ex)
             {

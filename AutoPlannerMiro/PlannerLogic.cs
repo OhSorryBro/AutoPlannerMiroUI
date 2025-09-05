@@ -101,29 +101,120 @@ public class PlannerLogic
         else
             return 3;
     }
-    public CategoryCount PickOrderByScenario(
-        List<CategoryCount> categories,
-        int scenario,
-        Random rng,
-        Dictionary<int, double[]> scenarioWeights)
-    {
-        while (true)
+        public CategoryCount PickOrderByScenario(
+            List<CategoryCount> categories,
+            int scenario,
+            Random rng,
+            Dictionary<int, double[]> scenarioWeights,
+            int readyMinute, // najwcześniejszy możliwy start na Formeren (min ze stacji)
+            Dictionary<string, int> priorityCounts,
+            Dictionary<string, List<(int idealMinute, int tolMin)>> priorityWindows)
         {
+            // --- [1] TWARDY WARUNEK: czy jakieś prio ma już WSZYSTKIE okna minione? ---
+            if (priorityCounts != null && priorityWindows != null)
+            {
+                var hardFails = new List<string>();
+
+                foreach (var (key, remaining) in priorityCounts)
+                {
+                    if (remaining <= 0) continue;
+
+                    if (!priorityWindows.TryGetValue(key, out var wins) || wins.Count == 0)
+                    {
+                        hardFails.Add($"{key}: remaining={remaining}, windows=0");
+                        continue;
+                    }
+
+                    // max koniec okien dla tej kategorii
+                    int maxEnd = wins.Max(w => w.idealMinute + w.tolMin);
+                    if (maxEnd < readyMinute)
+                    {
+                        // wszystkie okna skończyły się przed earliest start
+                        string missed = string.Join(",", wins.Select(w => $"[{w.idealMinute - w.tolMin}-{w.idealMinute + w.tolMin}]"));
+                        hardFails.Add($"{key}: remaining={remaining}, maxEnd={maxEnd}, windows={missed}");
+                    }
+                }
+
+                if (hardFails.Count > 0)
+                {
+                    string msg = $"MISSED priority window(s) @ {readyMinute}: {string.Join("; ", hardFails)}";
+                  //  Terminal.WriteLine("ERROR: " + msg);
+                    throw new InvalidOperationException(msg);
+                }
+            }
+
+            // --- [2] JEŚLI JESTEŚMY W OKNIE PRIO -> wybierz je teraz ---
+            if (priorityCounts != null && priorityWindows != null)
+            {
+                foreach (var cat in categories.Where(c => c.Count > 0))
+                {
+                    string key = cat.Category;
+
+                    if (priorityCounts.TryGetValue(key, out int remaining) && remaining > 0 &&
+                        priorityWindows.TryGetValue(key, out var wins) && wins.Count > 0)
+                    {
+                        // czy readyMinute mieści się w którymś oknie?
+                        int idx = wins.FindIndex(w =>
+                            readyMinute >= (w.idealMinute - w.tolMin) &&
+                            readyMinute <= (w.idealMinute + w.tolMin));
+
+                        if (idx >= 0)
+                        {
+                            var w = wins[idx];
+                            Terminal.WriteLine($"PRIO PICK: {key} @ {readyMinute} (ideal={w.idealMinute}, tol={w.tolMin})");
+
+                            // zdejmujemy 1 z prio + usuwamy to okno
+                            priorityCounts[key] = Math.Max(0, remaining - 1);
+                            wins.RemoveAt(idx);
+
+                            // UWAGA: cat.Count zdejmie się dopiero przy faktycznym zapisie zlecenia w PlanToFormerenStation
+                            return cat;
+                        }
+                    }
+                }
+            }
+
+            // --- [3] ŻADNE PRIO TERAZ -> bierzemy zwykłe wg scenariusza (omijamy kategorie z aktywnym prio oczekującym na przyszłe okna) ---
             int group = DrawGroupByScenario(scenario, rng, scenarioWeights);
 
             var groupCategories = categories
                 .Where(cat => cat.DurationGroup == group && cat.Count > 0)
                 .ToList();
 
-            if (groupCategories.Count > 0)
+            if (groupCategories.Count == 0)
             {
-                return groupCategories[rng.Next(groupCategories.Count)];
+                // spróbuj inne grupy, jeśli w tej nic nie ma
+                var fallback = categories.Where(c => c.Count > 0).ToList();
+                if (fallback.Count == 0) return null;
+
+                groupCategories = fallback;
             }
-            if (!categories.Any(cat => cat.Count > 0))
+
+            // Odfiltruj te, które mają niewykorzystane prio i okna jeszcze PRZED nami (czekają) – nie bierz ich jako zwykłe
+            var nonPriorityNow = groupCategories.Where(c =>
+            {
+                if (priorityCounts == null || priorityWindows == null) return true;
+
+                if (!priorityCounts.TryGetValue(c.Category, out int remaining) || remaining <= 0)
+                    return true;
+
+                if (!priorityWindows.TryGetValue(c.Category, out var wins) || wins.Count == 0)
+                    return true; // brak okien -> nie blokujemy zwykłego wyboru
+
+                // Jeżeli NAJBLIŻSZE (lub jakiekolwiek) okno jest dopiero w przyszłości, to zostaw tę kategorię na później
+                return !wins.Any(w => readyMinute < (w.idealMinute - w.tolMin));
+            }).ToList();
+
+            if (nonPriorityNow.Count == 0)
+            {
+                // nic sensownego do wyboru teraz (wszystko prio i czeka) -> brak wyboru
                 return null;
+            }
+
+            return nonPriorityNow[rng.Next(nonPriorityNow.Count)];
         }
-    }
-    public class OrderInfo
+
+        public class OrderInfo
     {
         public string Category { get; set; }
         public int X { get; set; }
@@ -134,18 +225,39 @@ public class PlannerLogic
     }
     public List<OrderInfo> OrdersMovedFromTheStationList { get; } = new List<OrderInfo>();
 
-    public void PlanToFormerenStation(List<FormerenStation> formerenStations,
-                                        List<CategoryCount> categories,
-                                        LevelOfMatching matching,
-                                        Random rng)
-    {
-        var bestStation = FindStationWithLowestMaxTimeBusy(formerenStations);
-        var firstAvailableCategory = PickOrderByScenario(categories, matching.ScenarioUsed, rng, matching.ScenarioWeights);
-
-
-        if (firstAvailableCategory != null)
+        public void PlanToFormerenStation(
+            List<FormerenStation> formerenStations,
+            List<CategoryCount> categories,
+            LevelOfMatching matching,
+            Random rng,
+            Dictionary<string, int> priorityCounts,
+            Dictionary<string, List<(int idealMinute, int tolMin)>> priorityWindows)
         {
-            int duration = firstAvailableCategory.Duration;
+            var bestStation = FindStationWithLowestMaxTimeBusy(formerenStations);
+            int readyMinute = bestStation.TimeBusy.Count > 0 ? bestStation.TimeBusy.Max() + 1 : 1;
+            //Terminal.WriteLine($"TRY PICK @ {readyMinute} | bestStation={bestStation.FormerenStationID}");
+
+
+            var firstAvailableCategory = PickOrderByScenario(
+                categories,
+                matching.ScenarioUsed,
+                rng,
+                matching.ScenarioWeights,
+                readyMinute,
+                priorityCounts,
+                priorityWindows
+            );
+            if (firstAvailableCategory == null)
+            {
+
+               // Terminal.WriteLine("No selectable category (probably none left) — finishing planning step.");
+                return;
+            }
+
+            if (firstAvailableCategory != null)
+            {
+              //  Terminal.WriteLine($"PICKED: {firstAvailableCategory.Category} (dur={firstAvailableCategory.Duration}) @ station {bestStation.FormerenStationID}");
+                int duration = firstAvailableCategory.Duration;
             bool canPlace = formerenStations.Any(station =>
                                             IsSlotAvailable(station.TimeBusy,
                                             (station.TimeBusy.Count > 0 ? station.TimeBusy.Max() + 1 : 1),
@@ -161,11 +273,12 @@ public class PlannerLogic
                 // We take order for further processing
                 //Terminal.WriteLine($"Working with category: {firstAvailableCategory.Category}, We still have: {firstAvailableCategory.Count - 1}");
                 int previousMax = bestStation.TimeBusy.Count > 0 ? bestStation.TimeBusy.Max() : 0;
-            int prevY = 1; // We set up prevY to 1, just in case if order is 1st.
+                int prevY = 1; // We set up prevY to 1, just in case if order is 1st.
 
-            // We assume that heigh of last order = Duration last category order
-            // y parameter is quaite scetchy because it is calculated base on the middle of the schape (same as x, but x is constant per station)
-            int prevHeight = 0;
+
+                // We assume that heigh of last order = Duration last category order
+                // y parameter is quaite scetchy because it is calculated base on the middle of the schape (same as x, but x is constant per station)
+                int prevHeight = 0;
             if (bestStation.OrdersAdded.Count > 0)
             {
                 var prevOrder = bestStation.OrdersAdded.Peek();
@@ -235,8 +348,8 @@ public class PlannerLogic
             {
                 if (order.OrderCategory == "Loading time")
                 {
-                    // Sprawdź czy się nakładają
-                    if (!(order.orderEnd < loadingStart || order.orderStart > loadingEnd))
+                    // Check if overlapping
+                        if (!(order.orderEnd < loadingStart || order.orderStart > loadingEnd))
                     {
                         count++;
                         if (count >= maxSimultaneousLoading)
@@ -261,7 +374,7 @@ public class PlannerLogic
         int loadingEnd = loadingStart + loadingDuration - 1;
 
         ReadyLocation ready = null;
-        // FILTRUJEMY docki przypisane do danego stanowiska
+        // Filter docks set up to station
         var dockIdsForThisStation = dockAssignments
             .Where(d => d.FormerenStationId == station.FormerenStationID)
             .Select(d => d.DockId)
@@ -272,7 +385,7 @@ public class PlannerLogic
                     .Where(r => dockIdsForThisStation.Contains(r.ReadyLocationID))
                     .OrderBy(_ => Guid.NewGuid()))
         {
-            // Tu sprawdzamy cały zakres: orderStart ... loadingEnd
+            // Checking range: orderStart ... loadingEnd
             if (IsSlotAvailable(loc.TimeBusy, orderStart, loadingEnd))
             {
                 ready = loc;
