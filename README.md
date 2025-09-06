@@ -62,27 +62,27 @@ Key Features
 
     Console-like logging panel (“Terminal”)
 
-Technologies
+  Technologies
 
-  C# / .NET (WinForms)
+    C# / .NET (WinForms)
 
-  RestSharp (HTTP calls to MIRO API)
+    RestSharp (HTTP calls to MIRO API)
 
-  Microsoft.Extensions.Configuration (appsettings.json support)
+    Microsoft.Extensions.Configuration (appsettings.json support)
 
-  CSV input (priority orders, dock blocking)
+    CSV input (priority orders, dock blocking)
 
-  MIRO API
+    MIRO API
 
-Installation & Setup
+  Installation & Setup
 
-  Download or clone the repository.
+    Download or clone the repository.
 
-  Prepare the CSV files if needed:
+    Prepare the CSV files if needed:
 
-    priority_orders.csv – leave only header row if you want to disable priorities.
+      priority_orders.csv – leave only header row if you want to disable priorities.
 
-    docks.csv – optional, defines blocked docks and times.
+      docks.csv – optional, defines blocked docks and times.
 
   Update appsettings.json with:
 
