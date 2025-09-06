@@ -94,15 +94,15 @@ Key Features
 
   Make sure you have the required version of .NET Framework installed.
 
-  Run the application.
+    Run the application.
 
-Usage Notes
+  Usage Notes
 
-  ⚠️ Each operator must have at least 2 docks available.
-  Do not block docks in a way that leaves fewer than 2 open – this will cause assignment errors.
+    ⚠️ Each operator must have at least 2 docks available.
+    Do not block docks in a way that leaves fewer than 2 open – this will cause assignment errors.
 
-  ⚠️ Too many priority orders may break planning.
-  The algorithm assumes priority orders are rare and exceptional.
+    ⚠️ Too many priority orders may break planning.
+    The algorithm assumes priority orders are rare and exceptional.
 
-  ⚠️ To disable priority orders:
-  Clear all rows (except the header) in priority_orders.csv.
+    ⚠️ To disable priority orders:
+    Clear all rows (except the header) in priority_orders.csv.
