@@ -254,31 +254,26 @@ public class PlannerLogic
                 return;
             }
 
-            if (firstAvailableCategory != null)
-            {
               //  Terminal.WriteLine($"PICKED: {firstAvailableCategory.Category} (dur={firstAvailableCategory.Duration}) @ station {bestStation.FormerenStationID}");
-                int duration = firstAvailableCategory.Duration;
-            bool canPlace = formerenStations.Any(station =>
-                                            IsSlotAvailable(station.TimeBusy,
-                                            (station.TimeBusy.Count > 0 ? station.TimeBusy.Max() + 1 : 1),
-                                            (station.TimeBusy.Count > 0 ? station.TimeBusy.Max() + 1 : 1) + duration - 1)
-                                            );
-            if (!canPlace)
+            int duration = firstAvailableCategory.Duration;
+            int previousMax = bestStation.TimeBusy.Count > 0 ? bestStation.TimeBusy.Max() : 0;
+            var orderStart = previousMax + 1;
+            var orderEnd = orderStart + duration - 1;
+            if (!IsSlotAvailable(bestStation.TimeBusy, orderStart, orderEnd))
             {
-                string msg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] No available worker slot for category {firstAvailableCategory.Category}, duration {duration} – try again!";
+                string msg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] No available slot on station {bestStation.FormerenStationID} " +
+                             $"for category {firstAvailableCategory.Category}, duration {duration} (start={orderStart}, end={orderEnd}).";
                 ErrorLogs.Add(msg);
                 throw new InvalidOperationException(msg);
-
             }
-                // We take order for further processing
-                //Terminal.WriteLine($"Working with category: {firstAvailableCategory.Category}, We still have: {firstAvailableCategory.Count - 1}");
-                int previousMax = bestStation.TimeBusy.Count > 0 ? bestStation.TimeBusy.Max() : 0;
-                int prevY = 1; // We set up prevY to 1, just in case if order is 1st.
 
+            // We take order for further processing
+            //Terminal.WriteLine($"Working with category: {firstAvailableCategory.Category}, We still have: {firstAvailableCategory.Count - 1}");
+            int prevY = 1; // We set up prevY to 1, just in case if order is 1st.
 
-                // We assume that heigh of last order = Duration last category order
-                // y parameter is quaite scetchy because it is calculated base on the middle of the schape (same as x, but x is constant per station)
-                int prevHeight = 0;
+            // We assume that heigh of last order = Duration last category order
+            // y parameter is quaite scetchy because it is calculated base on the middle of the schape (same as x, but x is constant per station)
+            int prevHeight = 0;
             if (bestStation.OrdersAdded.Count > 0)
             {
                 var prevOrder = bestStation.OrdersAdded.Peek();
@@ -286,17 +281,13 @@ public class PlannerLogic
                 prevHeight = categories.FirstOrDefault(cat => cat.Category == prevOrder.OrderCategory)?.Duration ?? 0;
             }
             int margin = 1;
-            var orderStart = previousMax + 1;
-            var orderEnd = orderStart + duration - 1;
+
             int newY = prevY + (prevHeight / 2) + (duration / 2) + margin;
 
             // end of y parameter calculation
 
             // Filling up TimeBusy for the station
-            for (int i = 1; i <= duration; i++)
-            {
-                bestStation.TimeBusy.Add(previousMax + i);
-            }
+            MarkSlotBusy(bestStation.TimeBusy, orderStart, orderEnd);
             // We take 1 from Count property of the take category
             firstAvailableCategory.Count--;
             // We add Order to the station stack
@@ -317,17 +308,12 @@ public class PlannerLogic
                 Start = orderStart,
                 End = orderEnd
             });
-        }
-        else
-        {
-                Terminal.WriteLine("No more orders to process in this scenario.");
-        }
 
     }
 
     public static bool IsSlotAvailable(HashSet<int> timeBusy, int orderStart, int orderEnd)
     {
-        for (int minute = orderStart; minute < orderEnd; minute++)
+        for (int minute = orderStart; minute <= orderEnd; minute++)
             if (timeBusy.Contains(minute))
                 return false;
         return true;
@@ -335,7 +321,7 @@ public class PlannerLogic
 
     public static void MarkSlotBusy(HashSet<int> timeBusy, int orderStart, int orderEnd)
     {
-        for (int minute = orderStart; minute < orderEnd; minute++)
+        for (int minute = orderStart; minute <= orderEnd; minute++)
             timeBusy.Add(minute);
     }
 
@@ -360,81 +346,99 @@ public class PlannerLogic
         }
         return true;
     }
-    public static void TransferOrdersToReadyLocations(List<FormerenStation> formerenStations, List<ReadyLocation> readyLocations, List<CategoryCount> categories, int levelOfSevernity, int maxSimultaneousLoading, List<DockAssignment> dockAssignments)
+public static void TransferOrdersToReadyLocations(
+    List<FormerenStation> formerenStations,
+    List<ReadyLocation> readyLocations,
+    List<CategoryCount> categories,
+    int levelOfSevernity,
+    int maxSimultaneousLoading,
+    List<DockAssignment> dockAssignments)
+{
+    // 1) wybierz sensownie stację (najwcześniejszy order do przeniesienia)
+    var station = formerenStations
+        .Where(s => s.OrdersAdded.Count > 0)
+        .OrderBy(s => s.OrdersAdded.Peek().orderStart)
+        .FirstOrDefault();
+
+    if (station == null) return;
+
+    // Do not remove the order until we successfully assign it to a ready location.
+    var order = station.OrdersAdded.Peek();
+
+    int duration = categories.First(cat => cat.Category == order.OrderCategory).Duration;
+    int orderStart = order.orderStart;
+    int orderEnd = order.orderEnd;
+
+    int loadingDuration = LevelOfMatching.GetLoadingTimeBySeverity(levelOfSevernity);
+    int loadingStart = orderEnd + 1;
+    int loadingEnd = loadingStart + loadingDuration - 1;
+
+    // docks przypisane do tej stacji
+    var dockIdsForThisStation = dockAssignments
+        .Where(d => d.FormerenStationId == station.FormerenStationID)
+        .Select(d => d.DockId)
+        .ToHashSet();
+
+    ReadyLocation ready = null;
+
+    foreach (var loc in readyLocations
+        .Where(r => dockIdsForThisStation.Contains(r.ReadyLocationID))
+        .OrderBy(_ => Guid.NewGuid()))
     {
-        var station = formerenStations.FirstOrDefault(s => s.OrdersAdded.Count > 0);
-        if (station == null) return;
-
-        var order = station.OrdersAdded.Pop();
-        int duration = categories.First(cat => cat.Category == order.OrderCategory).Duration;
-        int orderStart = order.orderStart;
-        int orderEnd = order.orderEnd;
-        int loadingDuration = LevelOfMatching.GetLoadingTimeBySeverity(levelOfSevernity);
-        int loadingStart = orderEnd + 1;
-        int loadingEnd = loadingStart + loadingDuration - 1;
-
-        ReadyLocation ready = null;
-        // Filter docks set up to station
-        var dockIdsForThisStation = dockAssignments
-            .Where(d => d.FormerenStationId == station.FormerenStationID)
-            .Select(d => d.DockId)
-            .ToHashSet();
-
-
-        foreach (var loc in readyLocations
-                    .Where(r => dockIdsForThisStation.Contains(r.ReadyLocationID))
-                    .OrderBy(_ => Guid.NewGuid()))
+        // ready location musi być wolna przez cały okres order+loading
+        if (IsSlotAvailable(loc.TimeBusy, orderStart, loadingEnd))
         {
-            // Checking range: orderStart ... loadingEnd
-            if (IsSlotAvailable(loc.TimeBusy, orderStart, loadingEnd))
-            {
-                ready = loc;
-                break;
-            }
-        }
-        if (ready == null)
-        {
-            string msg = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} No empty place! Tried to place at minute {orderStart}-{loadingEnd} on any of: {string.Join(",", dockIdsForThisStation)}";
-            throw new InvalidOperationException(msg);
-        }
-
-
-        // Calculate x
-        int x = (20 + ready.ReadyLocationID) * 100;
-
-        MarkSlotBusy(ready.TimeBusy, orderStart, orderEnd);
-
-        // We move order (with new x)
-        ready.OrdersAdded.Push((
-            order.OrderCategory,
-            x,
-            order.y,
-            order.Color,
-            orderStart,
-            orderEnd
-        ));
-        int loadingY = order.y + duration / 2 + loadingDuration / 2 + 1; // That was a tricky one
-
-        if (IsLoadingSlotAvailable(readyLocations, loadingStart, loadingEnd, maxSimultaneousLoading))
-        {
-            ready.OrdersAdded.Push((
-                "Loading time",
-                x,
-                loadingY,
-                "#000000",
-                loadingStart,
-                loadingEnd
-            ));
-            MarkSlotBusy(ready.TimeBusy, loadingStart, loadingEnd);
-        }
-        else
-        {
-            string msg = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} Loading slots exceed maxParallel={maxSimultaneousLoading} for time {loadingStart}-{loadingEnd}";
-            ErrorLogs.Add(msg);
-            throw new InvalidOperationException(msg);
+            ready = loc;
+            break;
         }
     }
 
+    if (ready == null)
+    {
+        string msg = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} No empty place! Tried {orderStart}-{loadingEnd} on any of: {string.Join(",", dockIdsForThisStation)}";
+        ErrorLogs.Add(msg);
+        // Do NOT pop the station order here — leave it for retry. Let outer loop handle the exception.
+        throw new InvalidOperationException(msg);
+    }
+
+    int x = (20 + ready.ReadyLocationID) * 100;
+
+    // Check global parallel loading limit BEFORE committing any changes.
+    if (!IsLoadingSlotAvailable(readyLocations, loadingStart, loadingEnd, maxSimultaneousLoading))
+    {
+        string msg = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} Loading slots exceed maxParallel={maxSimultaneousLoading} for time {loadingStart}-{loadingEnd}";
+        ErrorLogs.Add(msg);
+        throw new InvalidOperationException(msg);
+    }
+
+    // 2) ZAJMIJ CAŁY OKRES NA READY LOCATION (spójne z warunkiem wyboru)
+    MarkSlotBusy(ready.TimeBusy, orderStart, loadingEnd);
+
+    // Now it's safe to remove the order from station stack
+    station.OrdersAdded.Pop();
+
+    // order shape
+    ready.OrdersAdded.Push((
+        order.OrderCategory,
+        x,
+        order.y,
+        order.Color,
+        orderStart,
+        orderEnd
+    ));
+
+    int loadingY = order.y + duration / 2 + loadingDuration / 2 + 1;
+
+    // loading shape (wizualizacja)
+    ready.OrdersAdded.Push((
+        "Loading time",
+        x,
+        loadingY,
+        "#000000",
+        loadingStart,
+        loadingEnd
+    ));
+}
     public void CheckIfEnoughTimeAvailable(List<FormerenStation> formerenStations, List<CategoryCount> categories)
     {
 

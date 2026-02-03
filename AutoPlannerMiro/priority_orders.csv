@@ -1,4 +1,4 @@
 OrderId;TimeWindow;AmountOfOrders
-Order_Type1;150;2
-Order_Type2;450;1
-Order_Type3;250;1
+Order_Type1;150;0
+Order_Type2;450;0
+Order_Type3;250;0
